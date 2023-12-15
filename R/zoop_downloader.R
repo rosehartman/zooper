@@ -36,7 +36,7 @@ Zoopdownloader <- function(
   Data_sets = c("EMP_Meso", "FMWT_Meso", "STN_Meso",
                 "20mm_Meso", "FRP_Meso", "EMP_Micro",
                 "FRP_Macro", "EMP_Macro", "FMWT_Macro",
-                "STN_Macro", "DOP_Meso", "DOP_Macro"),
+                "STN_Macro", "DOP_Meso", "DOP_Macro", "DWSC_Meso"),
   Data_folder = tempdir(),
   Save_object = TRUE,
   Return_object = FALSE,
@@ -57,10 +57,10 @@ Zoopdownloader <- function(
                                        "20mm_Meso", "FRP_Meso","EMP_Micro",
                                        "FRP_Macro", "EMP_Macro", "FMWT_Macro",
                                        "STN_Macro", "YBFMP_Meso", "YBFMP_Micro",
-                                       "DOP_Meso", "DOP_Macro"))){
+                                       "DOP_Meso", "DOP_Macro", "DWSC_Meso"))){
     stop("Data_sets must contain one or more of the following options: 'EMP_Meso',
          'FMWT_Meso', 'STN_Meso', '20mm_Meso', 'FRP_Meso', 'EMP_Micro', 'FRP_Macro', 'EMP_Macro',
-         'FMWT_Macro', 'STN_Macro', 'YBFMP_Meso', 'YBFMP_Micro', 'DOP_Macro', 'DOP_Meso'")
+         'FMWT_Macro', 'STN_Macro', 'YBFMP_Meso', 'YBFMP_Micro', 'DOP_Macro', 'DOP_Meso', 'DWSC_Meso'")
   }
 
   if (!Return_object_type%in%c("List", "Combined")){
@@ -132,6 +132,80 @@ Zoopdownloader <- function(
     names(DOP_entities) <- purrr::map_chr(DOP_name_urls, ~Tryer(n=3, fun=readLines, con=.x, warn = FALSE))
 
   }
+
+
+  # DWSC ---------------------------------------------------------------------
+  if("DWSC_Meso"%in%Data_sets) {
+
+    # Import the DWSCdata
+
+    zoo_DWSC<-readr::read_csv("data-raw/ZoopsCountsAll.csv",
+                                  col_types=readr::cols_only(Date="c", genus="c", species="c",
+                                                             TowVolume_L="d", NumberPerLiter="d", Station="c"))
+    stas_DWSC<-readr::read_csv("data-raw/USBRSiteLocations_forRosie.csv") %>%
+      mutate(Station = str_sub(Station, 4, 5))
+    env_DWSC<-readr::read_csv("data-raw/enviro_data_forRosie.csv",
+                              col_types=readr::cols_only(Date="c",
+                                                         Turbidity_ntu="d", Secchi_cm="d", Station="c",
+                                                         SpCond_uS = "d", DO_mgL = "d", Temp_C = "d"))
+    zoo_DWSC = left_join(zoo_DWSC, env_DWSC)
+
+    # Tranform from "wide" to "long" format, add some variables,
+    # alter data to match other datasets
+
+    #note - check units for volume - do they match?
+
+    data.list[["DWSC_Meso"]] <- zoo_DWSC%>%
+      dplyr::filter(!is.na(.data$Date), !is.na(Station))%>%
+      dplyr::rename(Secchi = Secchi_cm, Temperature = Temp_C) %>%
+      dplyr::mutate(Time = NA, Date = lubridate::ymd(Date),
+                    Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$Time), NA_character_, paste(.data$Date, .data$Time)),
+                                                        c("%Y-%m-%d %I:%M %p"), tz="Etc/GMT+8"), #create a variable for datetime
+                    Datetime=lubridate::with_tz(.data$Datetime, "America/Los_Angeles"))%>% # Ensure everything ends up in local time
+      dplyr::mutate(Source="DWSC",
+                    SizeClass="Meso",
+                    species = case_when(species=="spp." ~ NA, species=="sp." ~ NA,
+                                        species == "(male)" ~ NA,
+                                        species %in% c("galeata mendotae",
+                                                       "galeata mendotae-mendotae",
+                                                       "galeata-mendotae")~ "galeata", species == "pulex complex" ~ "pulex",
+                                        species == "hulberti" ~ "hurlberti",
+                                        species == "larvae" ~ "larva",
+                                        .default = species),
+                    genus = case_when(genus %in% c("Gastropod", "gastropod", "gastropoda") ~ "Gastropoda",
+                                      TRUE ~ genus),
+                    DWSC_Meso = paste(genus, species))%>% #add variable for data source
+      dplyr::select("Source", Station, 'Date', "Datetime",
+                     CondSurf = "SpCond_uS", "Secchi", "SizeClass",
+                    "Temperature", "TowVolume_L",  "DWSC_Meso","NumberPerLiter")%>% #Select for columns in common and rename columns to match
+     mutate(CPUE = NumberPerLiter*1000, Volume = TowVolume_L/1000, .keep = "unused") %>%
+       dplyr::left_join(Crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
+                         dplyr::select("DWSC_Meso", "Lifestage", "Taxname", "Phylum", "Class", "Order",
+                                       "Family", "Genus", "Species")%>% #only retain sc codes
+                         dplyr::filter(!is.na(.data$DWSC_Meso))%>% #Only retain Taxnames corresponding to EMP codes
+                         dplyr::distinct(),
+                       by="DWSC_Meso")%>%
+      dplyr::filter(!is.na(.data$Taxname))%>% #Should remove all the summed categories in original dataset
+      dplyr::mutate(Taxlifestage=paste(.data$Taxname, .data$Lifestage), #create variable for combo taxonomy x life stage
+                    SampleID=paste(.data$Source, .data$Station, .data$Date), #Create identifier for each sample
+                    Tide="1",# All EMP samples collected at high slack
+                    TowType="Vertical")%>%
+      dplyr::select(-"DWSC_Meso")%>% #Remove taxa codes
+      dplyr::select(-"Datetime")%>% #Add this back in when other EMP data have time
+      dtplyr::lazy_dt()%>% #Speed up code using dtplyr package that takes advantage of data.table speed
+      dplyr::group_by(dplyr::across(-"CPUE"))%>%
+      dplyr::summarise(CPUE=sum(.data$CPUE, na.rm=TRUE))%>% #Some taxa now have the same names (e.g., CYCJUV and OTHCYCJUV) so we now add those categories together.
+      dplyr::ungroup()%>%
+      tibble::as_tibble() %>% #required to finish operation after lazy_dt()
+      dplyr::left_join(stas_DWSC, by="Station") %>% #Add lat and long and depth
+    dplyr::rename(Latitude = Lat, Longitude = Long, Depth = `Depth (m)`) %>%
+      dplyr::select(-`Depth (ft)`)
+
+
+  }
+
+
+
 
   # EMP Meso ---------------------------------------------------------------------
   if("EMP_Meso"%in%Data_sets) {

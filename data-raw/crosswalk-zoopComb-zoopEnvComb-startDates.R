@@ -7,7 +7,7 @@ crosswalk<-readr::read_csv(file.path("data-raw", "crosswalk.csv"),
                                                STN_Meso="c", STN_Macro="c", FMWT_Meso="c",
                                                FMWT_Macro="c", twentymm_Meso="c", FRP_Meso="c",
                                                FRP_Macro="c", YBFMP="c", LI_Meso="c",
-                                               LI_Micro="c", DOP_Meso="c", DOP_Macro="c",
+                                               LI_Micro="c", DOP_Meso="c", DOP_Macro="c", DWSC_Meso = "c",
                                                Lifestage="c", Taxname="c", Level="c",
                                                Phylum="c", Class="c", Order="c",
                                                Family="c", Genus="c", Species="c",
@@ -28,8 +28,8 @@ crosswalk<-readr::read_csv(file.path("data-raw", "crosswalk.csv"),
 zoop<-Zoopdownloader(Data_sets=c("EMP_Meso", "FMWT_Meso", "STN_Meso",
                                  "20mm_Meso", "FRP_Meso","EMP_Micro",
                                  "FRP_Macro", "EMP_Macro", "FMWT_Macro",
-                                 "STN_Macro", "YBFMP_Meso", "YBFMP_Micro", "DOP_Macro", "DOP_Meso"),
-                     Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE, Redownload_data=TRUE, Crosswalk=crosswalk)
+                                 "STN_Macro", "YBFMP_Meso", "YBFMP_Micro", "DOP_Macro", "DOP_Meso", "DWSC_Meso"),
+                     Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE, Redownload_data=TRUE, Crosswalk=Crosswalk)
 
 
 
