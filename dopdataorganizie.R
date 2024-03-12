@@ -295,3 +295,13 @@ write.csv(shipchannel, "shipchannelzoops.csv", row.names = FALSE)
 save(shipchannel, file = "shipchannelzoops.RData")
 
 ggplot(shipchannel, aes(x = Date, y = CPUE, color = Taxname))+ geom_point()
+
+ggplot(filter(shipchannel, Source == "DOP"), aes(x = Latitude, y = log(CPUE+1), color = TowType))+geom_point()
+
+
+ggplot(filter(shipchannel, Source == "DOP"), aes(x = as.factor(Year), y = log(CPUE+1), color = TowType))+
+  geom_boxplot()
+
+
+ggplot(filter(shipchannel, Source == "DOP"), aes(x = Taxname, y = log(CPUE+1), color = TowType))+
+  geom_boxplot()+ theme(axis.text.x = element_text(angle = 45, hjust =1))
