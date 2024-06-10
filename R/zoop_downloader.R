@@ -188,7 +188,7 @@ Zoopdownloader <- function(
       dplyr::filter(!is.na(.data$Taxname))%>% #Should remove all the summed categories in original dataset
       dplyr::mutate(Taxlifestage=paste(.data$Taxname, .data$Lifestage), #create variable for combo taxonomy x life stage
                     SampleID=paste(.data$Source, .data$Station, .data$Date), #Create identifier for each sample
-                    Tide="1",# All EMP samples collected at high slack
+
                     TowType="Vertical")%>%
       dplyr::select(-"DWSC_Meso")%>% #Remove taxa codes
       dplyr::select(-"Datetime")%>% #Add this back in when other EMP data have time

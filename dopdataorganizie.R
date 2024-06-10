@@ -237,7 +237,7 @@ Prob3a= filter(data.list$FRP_Macro, SampleID %in% c("MAC2-BK-26APR2019", "MAC4-T
 
 shipchannel = read_csv("data-raw/ZoopsCountsAll.csv")
 DWSC = mutate(shipchannel, Month = month(Date), Year = year(Date))
-ggplot(DWSC, aes(x = Month, y = NumberPerLiter, color = genus))+
+ggplot(DWSC, aes(x = Month, y = NumberPerLiter))+
   geom_point()+
   facet_wrap(~Year)
 
@@ -285,16 +285,83 @@ shipchannela = Zoopsynther(Data_type = "Community", Sources = c("FMWT", "STN", "
 unique(shipchannela$Source)
 
 ggplot(shipchannel, aes(x = Latitude, y = CPUE, color = Source))+geom_point()
+ggplot(filter(shipchannel, Source == "DWSC"), aes(x = month(Date), y = CPUE*1000, color = Source))+geom_point()+
+  facet_wrap(~Year)
 
 shipchannel = mutate(shipchannel, DOY = yday(Date))
 ggplot(shipchannel, aes(x = Latitude, y = DOY, size = log(CPUE+1), color = Source))+geom_point()
 
 ggplot(shipchannel, aes(x = Latitude, y = CPUE, color = Taxname))+geom_point()
 
-write.csv(shipchannel, "shipchannelzoops.csv", row.names = FALSE)
-save(shipchannel, file = "shipchannelzoops.RData")
+#for some strange reason, the DWSC dataset CPUE is getting thrown off. It's right in the zoopComb dataset,
+#but it gets divided by 1000 somewhere in teh zoopsynther funciton
 
-ggplot(shipchannel, aes(x = Date, y = CPUE, color = Taxname))+ geom_point()
+
+
+#OK, now how isn't doing psudodiaptumus juveniles?
+shipchannela = Zoopsynther(Data_type = "Community", Sources = c("DWSC"), Size_class = "Meso",
+                          Crosswalk = Crosswalk, Years = c(2008:2022),Long_range = c(-121.55, -121.7),
+                          Lat_range = c(38.2, 38.6),
+                          Zoop =zoopComb,
+                          ZoopEnv = zoopEnvComb)
+
+sort(unique(shipchannela$Taxlifestage))
+#yup, they don't do juveniles.
+#i'm going to do everything except DWSC, then everything, but use the pseudojuvs from the one without DWSC
+
+shipchannel2 = Zoopsynther(Data_type = "Community", Sources = c("FMWT", "STN", "DOP"), Size_class = "Meso",
+                          Crosswalk = Crosswalk, Years = c(2008:2022),Long_range = c(-121.55, -121.7),
+                          Lat_range = c(38.2, 38.6),
+                          Zoop =zoopComb,
+                          ZoopEnv = zoopEnvComb)
+
+
+juvpsu = filter(shipchannel2, Taxlifestage == "Pseudodiaptomus_UnID Juvenile") %>%
+  mutate(Psudocpue = CPUE) %>%
+  select(SampleID,   Psudocpue)
+juvcal = filter(shipchannel, Taxlifestage == "Calanoida_UnID Juvenile") %>%
+  mutate(calcpue = CPUE) %>%
+  select(SampleID,Source, SizeClass, Volume, Station, Date, Secchi, Temperature, Tide, Taxname, Lifestage,
+         TowType, Depth, Chl, BottomDepth, Datetime, Turbidity, pH, DO,
+         Microcystis, Year, SalSurf, Latitude, Longitude,  calcpue)
+
+juvs = left_join(juvcal, juvpsu) %>%
+  mutate(Psudocpue = case_when(is.na(Psudocpue) ~0,
+                               TRUE ~ Psudocpue))
+
+juvs$calcpue2 = juvs$calcpue - juvs$Psudocpue
+
+juvs_long = rename(juvs, `Pseudodiaptomus_UnID Juvenile` = Psudocpue,
+                   `Calanoida_UnID Juvenile` = calcpue2) %>%
+  select(-calcpue)%>%
+  pivot_longer(cols = c(`Calanoida_UnID Juvenile`, `Pseudodiaptomus_UnID Juvenile`),
+               names_to = "Taxlifestage", values_to = "CPUE")
+
+#now combine everything
+shipchannelall = shipchannel %>%
+  filter(Taxlifestage != "Calanoida_UnID Juvenile") %>%
+  bind_rows(juvs_long)
+
+#check and make sure i did that write
+ggplot(shipchannelall, aes(x = Source, y = CPUE)) +
+  geom_boxplot()+
+  facet_wrap(~Taxlifestage)
+
+test =group_by(shipchannelall, Taxlifestage, SampleID) %>%
+  summarize(N = n()) %>%
+  filter(N>1)
+
+test =group_by(shipchannelall, Taxlifestage) %>%
+  summarize(N = n()) %>%
+  filter(N>1)
+
+write.csv(shipchannelall, "shipchannelzoops.csv", row.names = FALSE)
+save(shipchannelall, file = "shipchannelzoops.RData")
+
+ggplot(shipchannelall, aes(x = Date, y = CPUE, color = Taxlifestage))+ geom_point()+
+  facet_wrap(~Source)
+
+test = filter(shipchannelall, is.na(Taxname))
 
 ggplot(filter(shipchannel, Source == "DOP"), aes(x = Latitude, y = log(CPUE+1), color = TowType))+geom_point()
 
