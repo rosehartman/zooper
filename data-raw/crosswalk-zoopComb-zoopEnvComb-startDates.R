@@ -6,7 +6,7 @@ crosswalk<-readr::read_csv(file.path("data-raw", "crosswalk.csv"),
                            col_types=readr::cols_only(EMP_Micro="c", EMP_Meso="c", EMP_Macro="c", EMP_Lengths="c",
                                                       STN_Meso="c", STN_Macro="c", FMWT_Meso="c",
                                                       FMWT_Macro="c", twentymm_Meso="c", FRP_Meso="c",
-                                                      FRP_Macro="c", YBFMP="c", LI_Meso="c",
+                                                      FRP_Macro="c", YBFMP="c", LI_Meso="c", USGS_Meso = "c",
                                                       LI_Micro="c", DOP_Meso="c", DOP_Macro="c",
                                                       Lifestage="c", Taxname="c", Level="c",
                                                       Phylum="c", Class="c", Order="c",
@@ -14,7 +14,7 @@ crosswalk<-readr::read_csv(file.path("data-raw", "crosswalk.csv"),
                                                       Intro="d", EMPstart="d", EMPend="d",
                                                       FMWTstart="d", FMWTend="d", twentymmstart="d",
                                                       twentymmend="d", twentymmstart2="d", DOPstart="d",
-                                                      DOPend="d", FRPstart = "d", FRPend = "d"))%>%
+                                                      DOPend="d", FRPstart = "d", FRPend = "d", USGSstart = "d"))%>%
   dplyr::mutate_at(dplyr::vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2", "DOPstart", "DOPend", "FRPstart", "FRPend")), ~readr::parse_date(as.character(.), format="%Y"))%>%
   dplyr::mutate_at(dplyr::vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend", "DOPstart", "DOPend", "FRPstart", "FRPend")), ~tidyr::replace_na(., lubridate::ymd("2500-01-01")))%>% #Change any NAs for starts or ends to 2500 (i.e. never started or ended, super far in the future)
   dplyr::mutate(EMPend = dplyr::if_else(is.finite(.data$EMPend), .data$EMPend+lubridate::years(1), .data$EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -24,12 +24,25 @@ crosswalk<-readr::read_csv(file.path("data-raw", "crosswalk.csv"),
   dplyr::mutate(FRPend = dplyr::if_else(is.finite(.data$FRPend), .data$FRPend+lubridate::years(1), .data$FRPend))%>% #Change end dates to beginning of next year (first day it was not counted)
   dplyr::mutate(Intro=tidyr::replace_na(.data$Intro, lubridate::ymd("1800-01-01"))) #Change any NAs in Intro date to 1800 (i.e., always been around)
 
-zoop<-Zoopdownloader(Data_sets=c("EMP_Meso", "FMWT_Meso", "STN_Meso",
-                                 "20mm_Meso", "FRP_Meso","EMP_Micro",
-                                 "FRP_Macro", "EMP_Macro", "FMWT_Macro",
-                                 "STN_Macro", "YBFMP_Meso", "YBFMP_Micro", "DOP_Macro", "DOP_Meso"),
-                     Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE,
-                     Redownload_data=TRUE, Crosswalk=crosswalk, Biomass=TRUE)
+ zoop<-Zoopdownloader(Data_sets=c("EMP_Meso", "FMWT_Meso", "STN_Meso",
+                                  "20mm_Meso", "FRP_Meso","EMP_Micro",
+                                  "FRP_Macro", "EMP_Macro", "FMWT_Macro",
+                                  "STN_Macro", "YBFMP_Meso", "YBFMP_Micro", "DOP_Macro",
+                                  "DOP_Meso", "USGS_Meso"),
+                      Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE,
+                     Redownload_data=FALSE, Crosswalk=crosswalk, Biomass=FALSE)
+
+ # zoop<-Zoopdownloader(Data_sets=c("EMP_Meso", "FMWT_Meso", "STN_Meso",
+ #                                  "20mm_Meso", "FRP_Meso","EMP_Micro",
+ #                                  "FRP_Macro", "EMP_Macro", "FMWT_Macro",
+ #                                  "STN_Macro", "YBFMP_Meso", "YBFMP_Micro", "DOP_Macro",
+ #                                  "DOP_Meso", "USGS_Meso"),
+ #                      Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE,
+ #                      Redownload_data=TRUE, Crosswalk=crosswalk, Biomass=TRUE)
+ #
+
+#Zoopdownloader("USGS_Meso", Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE,
+                                     # Redownload_data=TRUE, Crosswalk=crosswalk, Biomass=FALSE)
 
 zoopComb <- zoop$Zooplankton
 

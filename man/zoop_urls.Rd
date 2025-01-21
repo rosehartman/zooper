@@ -8,7 +8,7 @@ This function extracts the latest version of a zooplankton EDI package and the l
 zoop_urls(Sources)
 }
 \arguments{
-\item{Sources}{Source datasets to be included. Choices include "EMP" (Environmental Monitoring Program), "FRP" (Fish Restoration Program), "FMWT" (Fall Midwater Trawl), "STN" (Townet Survey), "DOP" (Directed Outflow Project), and "20mm" (20mm survey). The YBFMP datasets cannot be used in this function due to taxonomic and life stage issues with that dataset. Defaults to \code{Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP")}.}
+\item{Sources}{Source datasets to be included. Choices include "EMP" (Environmental Monitoring Program), "FRP" (Fish Restoration Program), "FMWT" (Fall Midwater Trawl), "STN" (Townet Survey), "DOP" (Directed Outflow Project), USGS north delta zooplankton and flux, and "20mm" (20mm survey). The YBFMP datasets cannot be used in this function due to taxonomic and life stage issues with that dataset. Defaults to \code{Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP")}.}
 }
 \value{
 A list with the files and/or URLs for each source dataset

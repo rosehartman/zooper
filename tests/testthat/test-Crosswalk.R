@@ -5,12 +5,13 @@ suppressWarnings({
 })
 
 crosswalk_starts<-zooper::crosswalk%>%
-  select(contains(c("EMP", "FMWT", "STN", "twentymm", "DOP", "FRP")))%>%
+  select(contains(c("EMP", "FMWT", "STN", "twentymm", "DOP", "FRP", "USGS")))%>%
   mutate(EMP=if_else(!is.na(EMP_Micro) | !is.na(EMP_Meso) | !is.na(EMP_Macro), "Y", NA_character_),
          FMWT=if_else(!is.na(FMWT_Meso) | !is.na(FMWT_Macro) | !is.na(STN_Meso) | !is.na(STN_Macro), "Y", NA_character_),
          twentymm=if_else(!is.na(twentymm_Meso), "Y", NA_character_),
          DOP=if_else(!is.na(DOP_Meso) | !is.na(DOP_Macro), "Y", NA_character_),
-         FRP=if_else(!is.na(FRP_Meso) | !is.na(FRP_Macro), "Y", NA_character_))
+         FRP=if_else(!is.na(FRP_Meso) | !is.na(FRP_Macro), "Y", NA_character_),
+         USGS=if_else(!is.na(USGS_Meso), "Y", NA_character_))
 
 taxlifestages<-unique(paste(zooper::crosswalk$Taxname, zooper::crosswalk$Lifestage))
 
@@ -29,6 +30,7 @@ test_that("Crosswalk start dates are entered for every taxa", {
   expect_true(all(is.finite(filter(crosswalk_starts, !is.na(twentymm))$twentymmstart)))
   expect_true(all(is.finite(filter(crosswalk_starts, !is.na(DOP))$DOPstart)))
   expect_true(all(is.finite(filter(crosswalk_starts, !is.na(FRP))$FRPstart)))
+  expect_true(all(is.finite(filter(crosswalk_starts, !is.na(USGS))$USGSstart)))
 })
 
 test_that("Crosswalk start dates are reasonable for every taxa", {
@@ -37,6 +39,7 @@ test_that("Crosswalk start dates are reasonable for every taxa", {
   expect_true(all(year(filter(crosswalk_starts, !is.na(twentymm))$twentymmstart)<=year(Sys.Date())))
   expect_true(all(year(filter(crosswalk_starts, !is.na(DOP))$DOPstart)<=year(Sys.Date())))
   expect_true(all(year(filter(crosswalk_starts, !is.na(FRP))$FRPstart)<=year(Sys.Date())))
+  expect_true(all(year(filter(crosswalk_starts, !is.na(USGS))$USGSstart)<=year(Sys.Date())))
 })
 
 test_that("Crosswalk start dates are not earlier than survey start dates", {
@@ -46,6 +49,7 @@ test_that("Crosswalk start dates are not earlier than survey start dates", {
   expect_true(all(is.na(crosswalk_starts$EMPstart) | starts$EMP <= year(crosswalk_starts$EMPstart)))
   expect_true(all(is.na(crosswalk_starts$FMWTstart) | starts$FMWT <= year(crosswalk_starts$FMWTstart)))
   expect_true(all(is.na(crosswalk_starts$FRPstart) | starts$FRP <= year(crosswalk_starts$FRPstart)))
+  expect_true(all(is.na(crosswalk_starts$USGSstart) | starts$USGS <= year(crosswalk_starts$USGSstart)))
 })
 
 test_that("No survey species codes are repeated in the crosswalk", {
@@ -63,6 +67,7 @@ test_that("No survey species codes are repeated in the crosswalk", {
   expect_true(all(!duplicated(na.omit(zooper::crosswalk$YBFMP))))
   expect_true(all(!duplicated(na.omit(zooper::crosswalk$DOP_Meso))))
   expect_true(all(!duplicated(na.omit(zooper::crosswalk$DOP_Macro))))
+  expect_true(all(!duplicated(na.omit(zooper::crosswalk$USGS_Meso))))
 })
 
 test_that("All Taxlifestage values in zoopComb appear in crossswalk", {
@@ -84,6 +89,11 @@ taxname_level<-zooper::crosswalk%>%
   pull(Taxname)%>%
   duplicated()%>%
   which()
+
+foo = zooper::crosswalk%>%
+  distinct(Taxname, Level, Phylum, Class, Order, Family, Genus, Species)
+
+foo[taxname_level,]
 
 test_that("Taxnames are entered with a consistent taxonomic level", {
   expect_equal(length(taxname_level), 0)
