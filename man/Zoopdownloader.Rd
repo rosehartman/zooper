@@ -7,7 +7,7 @@
 Zoopdownloader(
   Data_sets = c("EMP_Meso", "FMWT_Meso", "STN_Meso", "20mm_Meso", "FRP_Meso",
     "EMP_Micro", "FRP_Macro", "EMP_Macro", "FMWT_Macro", "STN_Macro", "DOP_Meso",
-    "DOP_Macro"),
+    "DOP_Macro", "USGS_Meso"),
   Biomass = TRUE,
   Data_folder = tempdir(),
   Save_object = TRUE,
@@ -22,7 +22,7 @@ Zoopdownloader(
 )
 }
 \arguments{
-\item{Data_sets}{Datasets to include in combined data. Choices include "EMP_Meso", "FMWT_Meso", "STN_Meso", "20mm_Meso", "FRP_Meso", "YBFMP_Meso", "EMP_Micro", "YBFMP_Micro", "FRP_Macro", "EMP_Macro", "FMWT_Macro", "STN_Macro", "DOP_Macro", and "DOP_Meso". Defaults to including all datasets except the two YBFMP datasets.}
+\item{Data_sets}{Datasets to include in combined data. Choices include "EMP_Meso", "FMWT_Meso", "STN_Meso", "20mm_Meso", "FRP_Meso", "YBFMP_Meso", "EMP_Micro", "YBFMP_Micro", "FRP_Macro", "EMP_Macro", "FMWT_Macro", "STN_Macro", "USGS", "DOP_Macro", and "DOP_Meso". Defaults to including all datasets except the two YBFMP datasets.}
 
 \item{Biomass}{Whether to add carbon biomass (carbon biomass per unit effort (\eqn{\mu}g/ \ifelse{html}{\out{m<sup>3</sup>}}{\eqn{m^{3}}})) to the dataset (where conversion equations and required data are available). Defaults to \code{Biomass = TRUE}}
 

@@ -67,12 +67,20 @@ html_file_list<-function(URL){
 zoop_urls<-function(Sources){
 
   if (!purrr::every(Sources, ~.%in%c("EMP", "FMWT", "STN",
-                                     "20mm", "FRP", "YBFMP", "DOP"))){
+                                     "20mm", "FRP", "YBFMP", "DOP", "USGS"))){
     stop("Sources must contain one or more of the following options:
-         'EMP', 'FMWT', 'STN','20mm', 'FRP', 'YBFMP', 'DOP'")
+         'EMP', 'FMWT', 'STN','20mm', 'FRP', 'YBFMP', 'DOP', 'USGS'")
   }
 
   out<-list()
+
+  if("USGS"%in%Sources){
+    out$USGS$USGSs<-"https://www.sciencebase.gov/catalog/file/get/5b8eda46e4b0702d0e7ec6ef?f=__disk__81%2Fb4%2F4a%2F81b44acc34849e3bf1888608acc90bab2d767c1f"
+    out$USGS$USGSzoops<-"https://www.sciencebase.gov/catalog/file/get/5b8eda46e4b0702d0e7ec6ef?f=__disk__ce%2F4a%2F64%2Fce4a643b5614344d9080787636ea85e3b7370647"
+    out$USGS$USGStaxa<-"https://www.sciencebase.gov/catalog/file/get/5b8eda46e4b0702d0e7ec6ef?f=__disk__9d%2Fac%2F5c%2F9dac5c65d6b12832abb1101ffba04a8cac985366"
+    out$USGS$USGSflux<-"data-raw/USGSwetlands/FLUX_Sample_Table_updateDec2024.csv"
+    out$USGS$USGSzoopsflux = "https://www.sciencebase.gov/catalog/file/get/5d1ba85fe4b0941bde621071?f=__disk__2c%2Fce%2Fdf%2F2ccedf52de33d07024de1a72db8e19049aa028f6"
+  }
 
   if("EMP"%in%Sources){
     EMP_revision_url <- "https://pasta.lternet.edu/package/eml/edi/522"

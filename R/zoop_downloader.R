@@ -6,7 +6,7 @@
 #' Datasets currently include "EMP" (Environmental Monitoring Program),
 #' "FRP" (Fish Restoration Program), "FMWT" (Fall Midwater Trawl), "STN" (Townet Survey), "20mm" (20mm survey),
 #' "DOP" (Directed Outflow Project Lower Trophic Study), and "YBFMP" (Yolo Bypass Fish Monitoring Program).
-#' @param Data_sets Datasets to include in combined data. Choices include "EMP_Meso", "FMWT_Meso", "STN_Meso", "20mm_Meso", "FRP_Meso", "YBFMP_Meso", "EMP_Micro", "YBFMP_Micro", "FRP_Macro", "EMP_Macro", "FMWT_Macro", "STN_Macro", "DOP_Macro", and "DOP_Meso". Defaults to including all datasets except the two YBFMP datasets.
+#' @param Data_sets Datasets to include in combined data. Choices include "EMP_Meso", "FMWT_Meso", "STN_Meso", "20mm_Meso", "FRP_Meso", "YBFMP_Meso", "EMP_Micro", "YBFMP_Micro", "FRP_Macro", "EMP_Macro", "FMWT_Macro", "STN_Macro", "USGS", "DOP_Macro", and "DOP_Meso". Defaults to including all datasets except the two YBFMP datasets.
 #' @param Biomass Whether to add carbon biomass (carbon biomass per unit effort (\eqn{\mu}g/ \ifelse{html}{\out{m<sup>3</sup>}}{\eqn{m^{3}}})) to the dataset (where conversion equations and required data are available). Defaults to \code{Biomass = TRUE}
 #' @param Data_folder Path to folder in which source datasets are stored, and to which you would like datasets to be downloaded if you set \code{Redownload_data = TRUE}. If you do not want to store every source dataset, you can leave this at the default \code{tempdir()}. If you do not wish to redownload these datasets every time you run the function, you can set this to a directory on your computer and run the function in the future with \code{Redownload_data = FALSE}, which will load the source datasets from \code{Data_folder} instead of downloading them again.
 #' @param Save_object Should the combined data be saved to disk? Defaults to \code{Save_object = TRUE}.
@@ -37,7 +37,7 @@ Zoopdownloader <- function(
     Data_sets = c("EMP_Meso", "FMWT_Meso", "STN_Meso",
                   "20mm_Meso", "FRP_Meso", "EMP_Micro",
                   "FRP_Macro", "EMP_Macro", "FMWT_Macro",
-                  "STN_Macro", "DOP_Meso", "DOP_Macro"),
+                  "STN_Macro", "DOP_Meso", "DOP_Macro", "USGS_Meso"),
     Biomass = TRUE,
     Data_folder = tempdir(),
     Save_object = TRUE,
@@ -59,10 +59,10 @@ Zoopdownloader <- function(
                                        "20mm_Meso", "FRP_Meso","EMP_Micro",
                                        "FRP_Macro", "EMP_Macro", "FMWT_Macro",
                                        "STN_Macro", "YBFMP_Meso", "YBFMP_Micro",
-                                       "DOP_Meso", "DOP_Macro"))){
+                                       "DOP_Meso", "DOP_Macro", "USGS_Meso"))){
     stop("Data_sets must contain one or more of the following options: 'EMP_Meso',
          'FMWT_Meso', 'STN_Meso', '20mm_Meso', 'FRP_Meso', 'EMP_Micro', 'FRP_Macro', 'EMP_Macro',
-         'FMWT_Macro', 'STN_Macro', 'YBFMP_Meso', 'YBFMP_Micro', 'DOP_Macro', 'DOP_Meso'")
+         'FMWT_Macro', 'STN_Macro', 'YBFMP_Meso', 'YBFMP_Micro', 'DOP_Macro', 'DOP_Meso', 'USGS_Meso'")
   }
 
   if (!Return_object_type%in%c("List", "Combined")){
@@ -175,6 +175,138 @@ Zoopdownloader <- function(
     cat("\nEMP_Meso finished!\n\n")
   }
 
+  # USGS ---------------------------------------------------------------------
+  if("USGS_Meso"%in%Data_sets) {
+
+    #download the files
+    if (!file.exists(file.path(Data_folder, "USGSs.csv")) | Redownload_data) {
+      Tryer(n=3, fun=utils::download.file, url=URLs$USGS$USGSs,
+            destfile=file.path(Data_folder, "USGSs.csv"), mode="wb", method=Download_method)
+    }
+    if (!file.exists(file.path(Data_folder, "USGSzoops.csv")) | Redownload_data) {
+      Tryer(n=3, fun=utils::download.file, url=URLs$USGS$USGSzoops,
+            destfile=file.path(Data_folder, "USGSzoops.csv"), mode="wb", method=Download_method)
+    }
+    if (!file.exists(file.path(Data_folder, "USGStaxa.csv")) | Redownload_data) {
+      Tryer(n=3, fun=utils::download.file, url=URLs$USGS$USGStaxa,
+            destfile=file.path(Data_folder, "USGStaxa.csv"), mode="wb", method=Download_method)
+    }
+    #we'll use a local copy of this for now until USGS updates their file
+    # if (!file.exists(file.path(Data_folder, "USGSsflux.csv")) | Redownload_data) {
+    #   Tryer(n=3, fun=utils::download.file, url=URLs$USGS$USGSsflux,
+    #         destfile=file.path(Data_folder, "USGSsflux.csv"), mode="wb", method=Download_method)
+    # }
+    if (!file.exists(file.path(Data_folder, "USGSzoopsflux.csv")) | Redownload_data) {
+      Tryer(n=3, fun=utils::download.file, url=URLs$USGS$USGSzoopsflux,
+            destfile=file.path(Data_folder, "USGSzoopsflux.csv"), mode="wb", method=Download_method)
+    }
+    # Import the USGS data
+
+    zoo_USGSs<-readr::read_csv(file.path(Data_folder, "USGSs.csv"),
+                                  col_types=readr::cols_only(Sample_Date="c", Start_Time = "c", Region = "c",
+                                                             Depth_m = "d", Sampling_Gear = "c", Latitude_Start_WGS84 = "d",
+                                                             Longitude_Start_WGS84 = "c", `Temperature_°C`="d",
+                                                             `Specific conductance_µS/cm` = "d", Salinity_PSU = "d",
+                                                             Turbidity_FNU = "d", `Chlorophyll_µg/L` = "d", pH = "d",
+                                                             `DO concentration_mg/L`="d"), locale=locale(encoding="latin1")) %>%
+      mutate(Longitude = as.numeric(str_trim(Longitude_Start_WGS84))) #there are some leading white spaces in there
+
+    zoo_USGSz<-readr::read_csv(file.path(Data_folder, "USGSzoops.csv"),
+                                    col_types=readr::cols_only(Sample_Number = "c",Sample_Date="c", Start_Time = "c", Water_Volume_Sampled_m3 = "d",
+                                                               Tow_Duration_minutes = "d"), locale=locale(encoding="latin1"))
+
+
+    zoo_USGStaxa = readr::read_csv(file.path(Data_folder, "USGStaxa.csv"),
+                                   col_types=readr::cols_only(Sample_Number = "c", Taxon_Name = "c", Immature = "c",
+                                                              Abundance_Corrected = "d"), locale=locale(encoding="latin1"))
+
+    #There are some issues with the version of this file in the data pub, so use a local one for now and change it when Matt updates the pub
+zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec2024.csv",
+                           col_types=readr::cols_only(`Sample Number` = "c",`Sample Date` = "c",
+                                                      `Start Time` = "c",`Sampling Gear` = "c", `Depth m`= "d",
+                                                      Tide = "c", `Latitude Start WGS 84` = "d",
+                                                      `Longitude Start WGS 84` = "d",
+                                                      `Temperature °C`="d",
+                                                      `Specific Conductance µS/cm` = "d",
+                                                      `Salinity PSU` = "d", `Turbidity FNU`="d", Waypoint = "c",
+                                                     `Chlorophyll µg/L`="d",`DO concentration mg/L` = "d",
+                                                     `DO saturation %`="d", pH = "d"), locale=locale(encoding="latin1"))
+
+    # zoo_USGSflux<-readr::read_csv(file.path(Data_folder, "USGSflux.csv"),
+    #                            col_types=readr::cols_only(`Sample Number` = "c",`Sample Date` = "c",
+    #                                                       `Start Time` = "c",`Sampling Gear` = "c", `Depth m`= "d",
+    #                                                       Tide = "c", `Latitude Start WGS 84` = "d",
+    #                                                       `Longitude Start WGS 84` = "d",
+    #                                                       `Temperature °C`="d",
+    #                                                       `Specific Conductance µS/cm` = "d",
+    #                                                       `Salinity PSU` = "d", `Turbidity FNU`="d", Waypoint = "c",
+    #                                                      `Chlorophyll µg/L`="d",`DO concentration mg/L` = "d",
+    #                                                      `DO saturation %`="d", pH = "d"), locale=locale(encoding="latin1"))
+    zoo_USGSzoopsflux<-readr::read_csv(file.path(Data_folder, "USGSzoopsflux.csv"),
+                                  col_types=readr::cols_only(`SampleNumber` = "c", `Start Time` = "c",
+                                                             `Volume of Water Sampled m3` = "d",
+                                                             `Tow Orientation` = "c", `TaxonName` = "c",
+                                                             `Abundance Corrected` = "d", `Specimens Immature` = "c"), locale=locale(encoding="latin1"))
+
+
+    # Alter names to match the other datasets and join environme tal ifo to taxonomic information
+    #need to check on tow types
+   USGSx =  zoo_USGSs %>%
+      dplyr::left_join(zoo_USGSz, by=c("Sample_Date", "Start_Time")) %>%
+      dplyr::left_join(zoo_USGStaxa) %>%
+      dplyr::mutate(Date=lubridate::parse_date_time(.data$Sample_Date, "%m/%d/%Y", tz="America/Los_Angeles"),
+                    Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$Start_Time), NA_character_, paste(.data$Date, .data$Start_Time)),
+                                                        "%Y-%m-%d %H:%M", tz="America/Los_Angeles"), #create a variable for datetime
+                    Source = "USGS", #add variable for data source
+                    SizeClass = "Meso",
+                    USGS_Meso = paste(Taxon_Name, Immature),
+                    CPUE = Abundance_Corrected/Water_Volume_Sampled_m3) %>%
+   #Select variables we are interested in.
+   dplyr::select("Source", "Date", "Datetime", "SizeClass",
+                 Station = "Region", Chl = "Chlorophyll_µg/L",
+                 CondSurf = "Specific conductance_µS/cm", "SizeClass",
+                 Temperature = "Temperature_°C", TurbidityFNU ="Turbidity_FNU", "pH",
+                 DO="DO concentration_mg/L",
+                 Volume = "Water_Volume_Sampled_m3", BottomDepth = "Depth_m",
+                 "USGS_Meso", "Sample_Number") %>%
+     mutate(TowType="Oblique")
+
+    #now the second UGSS datset
+    USGSy <- zoo_USGSflux %>%
+      left_join(zoo_USGSzoopsflux, by =c("Sample Number" = "SampleNumber", "Start Time")) %>%
+      dplyr::mutate(Date=lubridate::parse_date_time(.data$`Sample Date`, "%m/%d/%Y", tz="America/Los_Angeles"),
+                    Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$`Start Time`), NA_character_, paste(.data$Date, .data$`Start Time`)),
+                                                        "%Y-%m-%d %H:%M", tz="America/Los_Angeles"), #create a variable for datetime
+                    Source = "USGS", #add variable for data source
+                    SizeClass = "Meso",
+                    USGS_Meso = paste(TaxonName, `Specimens Immature`),
+                    CPUE = `Abundance Corrected`/`Volume of Water Sampled m3`) %>%
+    #Select variables we are interested in.
+    dplyr::select("Source", "Date", "Datetime", "SizeClass",
+                  Station = "Waypoint", Chl = "Chlorophyll µg/L", CondSurf = "Specific Conductance µS/cm", "SizeClass",
+                  Temperature = "Temperature °C", TurbidityFNU ="Turbidity FNU", "pH", DO="DO concentration mg/L",
+                  Volume = "Volume of Water Sampled m3", BottomDepth = "Depth m",
+                  "USGS_Meso", "CPUE", Latitude = "Latitude Start WGS 84",
+                  Longitude = "Longitude Start WGS 84",
+                  Sample_Number = "Sample Number") %>%
+      mutate(TowType="Oblique")
+
+    #bind the two datasets together and select variables o finterst
+    data.list[["USGS"]] <- bind_rows(USGSx, USGSy) %>%
+      dplyr::left_join(Crosswalk %>% #Add in Taxnames, Lifestage, and taxonomic info
+                         dplyr::select("USGS_Meso", "Lifestage", "Taxname", "Phylum",
+                                       "Class", "Order", "Family", "Genus", "Species")%>% #only retain dop codes
+                         dplyr::filter(!is.na(.data$USGS_Meso))%>% #Only retain Taxnames corresponding to USGS codes
+                         dplyr::distinct(),
+                       by="USGS_Meso")%>%
+      dplyr::filter(!is.na(.data$Taxname), !is.na(.data$CPUE)) %>%  #get rid of the lines with "NA" because the critter wasn't counted in this sample.
+      dplyr::mutate(Taxlifestage=paste(.data$Taxname, .data$Lifestage), #create variable for combo taxonomy x life stage
+                    SampleID=paste(.data$Source, .data$Station, .data$Date, .data$Sample_Number))%>% # Create sample ID
+
+      dplyr::select(-"USGS_Meso", -"Sample_Number") #Remove USGS code
+    cat("USGS_Meso finished!\n\n")
+
+  }
 
   # DOP Meso ---------------------------------------------------------------------
   if("DOP_Meso"%in%Data_sets) {
@@ -366,13 +498,14 @@ Zoopdownloader <- function(
 
     #download the file
     if (!file.exists(file.path(Data_folder, "FMWTSTN_Meso.csv")) | Redownload_data) {
-      Tryer(n=3, fun=utils::download.file, url=URLs$FMWTSTN$Meso,
+      Tryer(n=3, fun=utils::download.file, #url=URLs$FMWTSTN$Meso,
+            url = "https://filelib.wildlife.ca.gov/Public/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT_STN_CBNetCPUE_2005to2023_15Jul2024.csv",
             destfile=file.path(Data_folder,"FMWTSTN_Meso.csv"), mode="wb", method=Download_method)
-    }
-
-    if (!file.exists(file.path(Data_folder, "SMSCG_Meso.csv")) | Redownload_data) {
-      Tryer(n=3, fun=utils::download.file, url=URLs$SMSCG$Meso,
-            destfile=file.path(Data_folder, "SMSCG_Meso.csv"), mode="wb", method=Download_method)
+    # }
+    #
+    # if (!file.exists(file.path(Data_folder, "SMSCG_Meso.csv")) | Redownload_data) {
+    #   Tryer(n=3, fun=utils::download.file, url=URLs$SMSCG$Meso,
+    #         destfile=file.path(Data_folder, "SMSCG_Meso.csv"), mode="wb", method=Download_method)
     }
 
 
@@ -403,40 +536,40 @@ Zoopdownloader <- function(
       dplyr::mutate(ID=paste(.data$Year, .data$Project, .data$Survey, .data$Station),
                     Date=lubridate::parse_date_time(.data$Date, "%m/%d/%Y", tz="America/Los_Angeles"))
 
-    zoo_SMSCG_Meso<-readr::read_csv(file.path(Data_folder, "SMSCG_Meso.csv"),
-                                    col_types=readr::cols_only(Project="c", Year="d", Survey="d",
-                                                               Date="c", Station="c", Time="c",
-                                                               TideCode="c", DepthBottom="d", CondSurf="d",
-                                                               PPTSurf="d", CondBott="d", PPTBott="d",
-                                                               TempSurf="d", TempBottom="d", Secchi="d",
-                                                               Turbidity="d", Microcystis="c", Volume="d",
-                                                               ACARTELA="d", ACARTIA="d", DIAPTOM="d",
-                                                               EURYTEM="d", OTHCALAD="d", PDIAPFOR="d",
-                                                               PDIAPMAR="d", SINOCAL="d", TORTANUS="d",
-                                                               ACANTHO="d", LIMNOSPP="d", LIMNOSINE="d",
-                                                               LIMNOTET="d", OITHDAV="d", OITHSIM="d",
-                                                               OTHCYCAD="d", HARPACT="d", EURYJUV="d",
-                                                               OTHCALJUV="d", PDIAPJUV="d", SINOCALJUV="d",
-                                                               ASINEJUV="d", ACARJUV="d", DIAPTJUV="d",
-                                                               TORTJUV="d", LIMNOJUV="d", OITHJUV="d",
-                                                               OTHCYCJUV="d", EURYNAUP="d", OTHCOPNAUP="d",
-                                                               PDIAPNAUP="d", SINONAUP="d", BOSMINA="d",
-                                                               DAPHNIA="d", DIAPHAN="d", OTHCLADO="d",
-                                                               ASPLANCH="d", KERATELA="d", OTHROT="d",
-                                                               POLYARTH="d", SYNCH="d", TRICHO="d",
-                                                               BARNNAUP="d", CRABZOEA="d", OSTRACOD="d", CUMAC="d"))%>%
-      dplyr::mutate(Project=dplyr::recode(.data$Project, TNS="STN"),
-                    ID=paste(.data$Year, .data$Project, .data$Survey, .data$Station),
-                    Date=lubridate::parse_date_time(.data$Date, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
-      dplyr::filter(!.data$ID%in%unique(zoo_FMWT_Meso$ID) & .data$Project!="EMP")%>%
-      dplyr::mutate(Station=dplyr::if_else(.data$Project=="FRP", paste(.data$Project, .data$Station), .data$Station),
-                    Project=dplyr::recode(.data$Project, FRP="STN"))
+    # zoo_SMSCG_Meso<-readr::read_csv(file.path(Data_folder, "SMSCG_Meso.csv"),
+    #                                 col_types=readr::cols_only(Project="c", Year="d", Survey="d",
+    #                                                            Date="c", Station="c", Time="c",
+    #                                                            TideCode="c", DepthBottom="d", CondSurf="d",
+    #                                                            PPTSurf="d", CondBott="d", PPTBott="d",
+    #                                                            TempSurf="d", TempBottom="d", Secchi="d",
+    #                                                            Turbidity="d", Microcystis="c", Volume="d",
+    #                                                            ACARTELA="d", ACARTIA="d", DIAPTOM="d",
+    #                                                            EURYTEM="d", OTHCALAD="d", PDIAPFOR="d",
+    #                                                            PDIAPMAR="d", SINOCAL="d", TORTANUS="d",
+    #                                                            ACANTHO="d", LIMNOSPP="d", LIMNOSINE="d",
+    #                                                            LIMNOTET="d", OITHDAV="d", OITHSIM="d",
+    #                                                            OTHCYCAD="d", HARPACT="d", EURYJUV="d",
+    #                                                            OTHCALJUV="d", PDIAPJUV="d", SINOCALJUV="d",
+    #                                                            ASINEJUV="d", ACARJUV="d", DIAPTJUV="d",
+    #                                                            TORTJUV="d", LIMNOJUV="d", OITHJUV="d",
+    #                                                            OTHCYCJUV="d", EURYNAUP="d", OTHCOPNAUP="d",
+    #                                                            PDIAPNAUP="d", SINONAUP="d", BOSMINA="d",
+    #                                                            DAPHNIA="d", DIAPHAN="d", OTHCLADO="d",
+    #                                                            ASPLANCH="d", KERATELA="d", OTHROT="d",
+    #                                                            POLYARTH="d", SYNCH="d", TRICHO="d",
+    #                                                            BARNNAUP="d", CRABZOEA="d", OSTRACOD="d", CUMAC="d"))%>%
+    #   dplyr::mutate(Project=dplyr::recode(.data$Project, TNS="STN"),
+    #                 ID=paste(.data$Year, .data$Project, .data$Survey, .data$Station),
+    #                 Date=lubridate::parse_date_time(.data$Date, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
+    #   dplyr::filter(!.data$ID%in%unique(zoo_FMWT_Meso$ID) & .data$Project!="EMP")%>%
+    #   dplyr::mutate(Station=dplyr::if_else(.data$Project=="FRP", paste(.data$Project, .data$Station), .data$Station),
+    #                 Project=dplyr::recode(.data$Project, FRP="STN"))
 
     # Transform from "wide" to "long" format, add some variables,
     # alter data to match other datasets
 
     data.list[["FMWT_Meso"]] <- zoo_FMWT_Meso%>%
-      dplyr::bind_rows(zoo_SMSCG_Meso)%>%
+      #dplyr::bind_rows(zoo_SMSCG_Meso)%>%
       dplyr::select(-"ID")%>%
       dplyr::mutate(Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$Time) | !stringr::str_detect(.data$Time, stringr::fixed(":")),
                                                                        NA_character_,
