@@ -28,9 +28,9 @@ crosswalk<-readr::read_csv(file.path("data-raw", "crosswalk.csv"),
                                   "20mm_Meso", "FRP_Meso","EMP_Micro",
                                   "FRP_Macro", "EMP_Macro", "FMWT_Macro",
                                   "STN_Macro", "YBFMP_Meso", "YBFMP_Micro", "DOP_Macro",
-                                  "DOP_Meso", "USGS_Meso"),
+                                  "DOP_Meso", "USGS_Meso", "LI_Micro"),
                       Data_folder=tempdir(), Save_object=FALSE, Return_object=TRUE,
-                     Redownload_data=FALSE, Crosswalk=crosswalk, Biomass=FALSE)
+                     Redownload_data=TRUE, Crosswalk=crosswalk, Biomass=FALSE)
 
  # zoop<-Zoopdownloader(Data_sets=c("EMP_Meso", "FMWT_Meso", "STN_Meso",
  #                                  "20mm_Meso", "FRP_Meso","EMP_Micro",

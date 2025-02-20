@@ -10,7 +10,7 @@ Zoopsynther(
   ZoopEnv = zooper::zoopEnvComb,
   Zoop_path = NULL,
   Env_path = NULL,
-  Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS"),
+  Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI"),
   Size_class = c("Micro", "Meso", "Macro"),
   Time_consistency = FALSE,
   Intro_lag = 2,

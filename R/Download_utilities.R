@@ -67,7 +67,7 @@ html_file_list<-function(URL){
 zoop_urls<-function(Sources){
 
   if (!purrr::every(Sources, ~.%in%c("EMP", "FMWT", "STN",
-                                     "20mm", "FRP", "YBFMP", "DOP", "USGS"))){
+                                     "20mm", "FRP", "YBFMP", "DOP", "USGS", "LI"))){
     stop("Sources must contain one or more of the following options:
          'EMP', 'FMWT', 'STN','20mm', 'FRP', 'YBFMP', 'DOP', 'USGS'")
   }

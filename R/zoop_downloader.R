@@ -37,7 +37,7 @@ Zoopdownloader <- function(
     Data_sets = c("EMP_Meso", "FMWT_Meso", "STN_Meso",
                   "20mm_Meso", "FRP_Meso", "EMP_Micro",
                   "FRP_Macro", "EMP_Macro", "FMWT_Macro",
-                  "STN_Macro", "DOP_Meso", "DOP_Macro", "USGS_Meso"),
+                  "STN_Macro", "DOP_Meso", "DOP_Macro", "USGS_Meso", "LI_Micro"),
     Biomass = TRUE,
     Data_folder = tempdir(),
     Save_object = TRUE,
@@ -59,10 +59,10 @@ Zoopdownloader <- function(
                                        "20mm_Meso", "FRP_Meso","EMP_Micro",
                                        "FRP_Macro", "EMP_Macro", "FMWT_Macro",
                                        "STN_Macro", "YBFMP_Meso", "YBFMP_Micro",
-                                       "DOP_Meso", "DOP_Macro", "USGS_Meso"))){
+                                       "DOP_Meso", "DOP_Macro", "USGS_Meso", "LI_Micro"))){
     stop("Data_sets must contain one or more of the following options: 'EMP_Meso',
          'FMWT_Meso', 'STN_Meso', '20mm_Meso', 'FRP_Meso', 'EMP_Micro', 'FRP_Macro', 'EMP_Macro',
-         'FMWT_Macro', 'STN_Macro', 'YBFMP_Meso', 'YBFMP_Micro', 'DOP_Macro', 'DOP_Meso', 'USGS_Meso'")
+         'FMWT_Macro', 'STN_Macro', 'YBFMP_Meso', 'YBFMP_Micro', 'DOP_Macro', 'DOP_Meso', 'USGS_Meso', 'LI_Micro'")
   }
 
   if (!Return_object_type%in%c("List", "Combined")){
@@ -175,7 +175,59 @@ Zoopdownloader <- function(
     cat("\nEMP_Meso finished!\n\n")
   }
 
-  # USGS ---------------------------------------------------------------------
+
+  # Liberty Island Micro ---------------------------------------------------------------------
+  if("LI_Micro"%in%Data_sets) {
+
+ #Import the data
+
+    zoo_LI_Micro<-readr::read_csv("data-raw/LFWO_LibertyI_zoop.csv",
+                                  col_types=readr::cols_only(ID="c", Process="c", ID="c",
+                                                             Date = "c", Time = "c", Latitude = "d",
+                                                             Longitude = "d", Genus = "c",
+                                                             Species = "c", Division = "c",
+                                                             LifeStage = "c", Zooppl = "d",
+                                                             AvgTemp = "d", AvgSpc = "d",
+                                                             AvgDO = "d", AvgTurb = "d",
+                                                             AvgDepth = "d"))
+
+
+    data.list[["LI_Micro"]] <- zoo_LI_Micro%>%
+      dplyr::mutate(Date=lubridate::parse_date_time(.data$Date, "%Y-%m-%d", tz="America/Los_Angeles"),
+                    Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$Time)|Time == "na", NA_character_, paste(.data$Date, .data$Time)),
+                                                        c("%Y-%m-%d %H:%M:%S"), tz="Etc/GMT+8"), #create a variable for datetime
+                    Datetime=lubridate::with_tz(.data$Datetime, "America/Los_Angeles"))%>% # Ensure everything ends up in local time
+
+      dplyr::mutate( Taxon = paste(Genus, Species, LifeStage),
+        Source="LI",
+                    SizeClass="Micro")%>% #add variable for data source
+      dplyr::select("Source", "Date", "Datetime", "Taxon", DO = "AvgDO", TurbidityNTU = "AvgTurb",
+                    Station="ID",  CondSurf = "AvgSpc", "SizeClass", "Latitude", "Longitude",
+                    Temperature = "AvgTemp",  BottomDepth="AvgDepth",  "Zooppl")%>% #Select for columns in common and rename columns to match
+      dplyr::mutate(CPUE = Zooppl*1000) %>% #convert liters to cubic meters
+      dplyr::filter(lubridate::year(Date) >=2017) %>% #filter to the time period with consistant mesh siszze and taxonomic methods
+      dplyr::left_join(Crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
+                         dplyr::select("LI_Micro", "Lifestage", "Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species")%>% #only retain EMP codes
+                         dplyr::filter(!is.na(.data$LI_Micro))%>% #Only retain Taxnames corresponding to EMP codes
+                         dplyr::distinct(),
+                       by=c("Taxon" = "LI_Micro"))%>%
+      dplyr::filter(!is.na(.data$Taxname))%>% #Should remove all the summed categories in original dataset
+      dplyr::mutate(Taxlifestage=paste(.data$Taxname, .data$Lifestage), #create variable for combo taxonomy x life stage
+                    SampleID=paste(.data$Source, .data$Station), #Create identifier for each sample
+                    TowType="Surface") %>%
+      dplyr::select(-"Taxon")%>% #Remove LI taxa codes
+      dtplyr::lazy_dt()%>% #Speed up code using dtplyr package that takes advantage of data.table speed
+      dplyr::group_by(dplyr::across(-"CPUE"))%>%
+      dplyr::summarise(CPUE=sum(.data$CPUE, na.rm=TRUE))%>% #Some taxa now have the same names (e.g., CYCJUV and OTHCYCJUV) so we now add those categories together.
+      dplyr::ungroup()%>%
+      tibble::as_tibble()
+
+
+    cat("\nLI_Micro finished!\n\n")
+  }
+
+
+# USGS ---------------------------------------------------------------------
   if("USGS_Meso"%in%Data_sets) {
 
     #download the files

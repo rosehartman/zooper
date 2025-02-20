@@ -7,7 +7,7 @@
 Zoopdownloader(
   Data_sets = c("EMP_Meso", "FMWT_Meso", "STN_Meso", "20mm_Meso", "FRP_Meso",
     "EMP_Micro", "FRP_Macro", "EMP_Macro", "FMWT_Macro", "STN_Macro", "DOP_Meso",
-    "DOP_Macro", "USGS_Meso"),
+    "DOP_Macro", "USGS_Meso", "LI_Micro"),
   Biomass = TRUE,
   Data_folder = tempdir(),
   Save_object = TRUE,

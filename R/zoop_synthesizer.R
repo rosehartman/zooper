@@ -71,7 +71,7 @@ Zoopsynther<-function(
   ZoopEnv = zooper::zoopEnvComb,
   Zoop_path = NULL,
   Env_path = NULL,
-  Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS"),
+  Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI"),
   Size_class = c("Micro", "Meso", "Macro"),
   Time_consistency = FALSE,
   Intro_lag = 2,
@@ -111,8 +111,8 @@ Zoopsynther<-function(
     stop("YBFMP cannot be synthesized with this function due to taxonomic and life stage issues with that dataset. Please acccess the YBFMP data with the zoop_downloader function or the built-in datasets zoopComb and zoopEnvComb.")
   }
 
-  if (!purrr::every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS"))){
-    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, STN, 20mm, DOP, USGS")
+  if (!purrr::every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI"))){
+    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, STN, 20mm, DOP, USGS, LI")
   }
 
   if (!purrr::every(Size_class, ~.%in%c("Micro", "Meso", "Macro"))){
