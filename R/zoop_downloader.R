@@ -260,17 +260,17 @@ Zoopdownloader <- function(
                                                              Longitude_Start_WGS84 = "c", `Temperature_°C`="d",
                                                              `Specific conductance_µS/cm` = "d", Salinity_PSU = "d",
                                                              Turbidity_FNU = "d", `Chlorophyll_µg/L` = "d", pH = "d",
-                                                             `DO concentration_mg/L`="d"), locale=locale(encoding="latin1")) %>%
-      mutate(Longitude = as.numeric(str_trim(Longitude_Start_WGS84))) #there are some leading white spaces in there
+                                                             `DO concentration_mg/L`="d"), locale= readr::locale(encoding="latin1")) %>%
+      dplyr::mutate(Longitude = as.numeric(stringr::str_trim(Longitude_Start_WGS84))) #there are some leading white spaces in there
 
     zoo_USGSz<-readr::read_csv(file.path(Data_folder, "USGSzoops.csv"),
                                     col_types=readr::cols_only(Sample_Number = "c",Sample_Date="c", Start_Time = "c", Water_Volume_Sampled_m3 = "d",
-                                                               Tow_Duration_minutes = "d"), locale=locale(encoding="latin1"))
+                                                               Tow_Duration_minutes = "d"), locale=readr::locale(encoding="latin1"))
 
 
     zoo_USGStaxa = readr::read_csv(file.path(Data_folder, "USGStaxa.csv"),
                                    col_types=readr::cols_only(Sample_Number = "c", Taxon_Name = "c", Immature = "c",
-                                                              Abundance_Corrected = "d"), locale=locale(encoding="latin1"))
+                                                              Abundance_Corrected = "d"), locale=readr::locale(encoding="latin1"))
 
     #There are some issues with the version of this file in the data pub, so use a local one for now and change it when Matt updates the pub
 zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec2024.csv",
@@ -282,7 +282,7 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
                                                       `Specific Conductance µS/cm` = "d",
                                                       `Salinity PSU` = "d", `Turbidity FNU`="d", Waypoint = "c",
                                                      `Chlorophyll µg/L`="d",`DO concentration mg/L` = "d",
-                                                     `DO saturation %`="d", pH = "d"), locale=locale(encoding="latin1"))
+                                                     `DO saturation %`="d", pH = "d"), locale=readr::locale(encoding="latin1"))
 
     # zoo_USGSflux<-readr::read_csv(file.path(Data_folder, "USGSflux.csv"),
     #                            col_types=readr::cols_only(`Sample Number` = "c",`Sample Date` = "c",
@@ -298,7 +298,8 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
                                   col_types=readr::cols_only(`SampleNumber` = "c", `Start Time` = "c",
                                                              `Volume of Water Sampled m3` = "d",
                                                              `Tow Orientation` = "c", `TaxonName` = "c",
-                                                             `Abundance Corrected` = "d", `Specimens Immature` = "c"), locale=locale(encoding="latin1"))
+                                                             `Abundance Corrected` = "d", `Specimens Immature` = "c"),
+                                  locale=readr::locale(encoding="latin1"))
 
 
     # Alter names to match the other datasets and join environme tal ifo to taxonomic information
@@ -321,11 +322,11 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
                  DO="DO concentration_mg/L",
                  Volume = "Water_Volume_Sampled_m3", BottomDepth = "Depth_m",
                  "USGS_Meso", "Sample_Number") %>%
-     mutate(TowType="Oblique")
+     dplyr::mutate(TowType="Oblique")
 
     #now the second UGSS datset
     USGSy <- zoo_USGSflux %>%
-      left_join(zoo_USGSzoopsflux, by =c("Sample Number" = "SampleNumber", "Start Time")) %>%
+      dplyr::left_join(zoo_USGSzoopsflux, by =c("Sample Number" = "SampleNumber", "Start Time")) %>%
       dplyr::mutate(Date=lubridate::parse_date_time(.data$`Sample Date`, "%m/%d/%Y", tz="America/Los_Angeles"),
                     Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$`Start Time`), NA_character_, paste(.data$Date, .data$`Start Time`)),
                                                         "%Y-%m-%d %H:%M", tz="America/Los_Angeles"), #create a variable for datetime
@@ -341,7 +342,7 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
                   "USGS_Meso", "CPUE", Latitude = "Latitude Start WGS 84",
                   Longitude = "Longitude Start WGS 84",
                   Sample_Number = "Sample Number") %>%
-      mutate(TowType="Oblique")
+      dplyr::mutate(TowType="Oblique")
 
     #bind the two datasets together and select variables o finterst
     data.list[["USGS"]] <- bind_rows(USGSx, USGSy) %>%
@@ -1015,7 +1016,9 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
 
     #Already in long format
     data.list[["FRP_Macro"]] <- FRP_allmac%>%
-      dplyr::filter(.data$GearTypeAbbreviation %in% c("MAC", "MACOBL", "MACBEN"))%>%
+
+      #expand number of gear types
+      #dplyr::filter(.data$GearTypeAbbreviation %in% c("MAC", "MACOBL", "MACBEN"))%>%
      # dplyr::mutate(Date=lubridate::parse_date_time(.data$Date, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
       dplyr::mutate(Datetime=lubridate::parse_date_time(dplyr::if_else(is.na(.data$StartTime),
                                                                        NA_character_,
@@ -1026,7 +1029,7 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
                     TowType= dplyr::case_when(GearTypeAbbreviation == "MAC" ~ "Surface",
                                               GearTypeAbbreviation == "MACOBL" ~ "Oblique",
                                               GearTypeAbbreviation == "MACBEN" ~ "Bottom",
-                                              TRUE ~ "Surface"),
+                                              TRUE ~ GearTypeAbbreviation),
                     CPUE = .data$AdjCount/.data$effort, #add variable for data source and calculate CPUE
                     Microcystis = dplyr::recode(.data$Microcystis, `1=absent`="1", `2=low`="2", `3=medium`="3"))%>%
 
