@@ -132,6 +132,17 @@ zoop_urls<-function(Sources){
 
     out$YBFMP<-paste0(YBFMP_pkg_url, "/", YBFMP_entities["Zooplankton Data"])
 
+    #drift invertebrates and larval fish
+    YBFMPdrift_revision_url <- "https://pasta.lternet.edu/package/eml/edi/818"
+    YBFMPdrift_latest_revision <- utils::tail(Tryer(n=3, fun=readLines, con=YBFMPdrift_revision_url, warn = FALSE), 1)
+    YBFMPdrift_pkg_url <- paste0("https://pasta.lternet.edu/package/data/eml/edi/818/", YBFMPdrift_latest_revision)
+    YBFMPdrift_entities <- Tryer(n=3, fun=readLines, con=YBFMPdrift_pkg_url, warn = FALSE)
+    YBFMPdrift_name_urls <- paste("https://pasta.lternet.edu/package/name/eml/edi/818",
+                                  YBFMPdrift_latest_revision, YBFMPdrift_entities, sep="/")
+    names(YBFMPdrift_entities) <- purrr::map_chr(YBFMPdrift_name_urls, ~Tryer(n=3, fun=readLines, con=.x, warn = FALSE))
+
+    out$YBFMPdrift<-paste0(YBFMPdrift_pkg_url, "/", YBFMPdrift_entities["Drift Invertebrate Data"])
+
   }
 
   if("DOP"%in%Sources){

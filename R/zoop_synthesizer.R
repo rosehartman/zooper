@@ -71,7 +71,7 @@ Zoopsynther<-function(
   ZoopEnv = zooper::zoopEnvComb,
   Zoop_path = NULL,
   Env_path = NULL,
-  Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI"),
+  Sources = c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI", "YBFMP"),
   Size_class = c("Micro", "Meso", "Macro"),
   Time_consistency = FALSE,
   Intro_lag = 2,
@@ -107,12 +107,12 @@ Zoopsynther<-function(
   }
 
   #Warnings for improper arguments
-  if("YBFMP" %in% Sources){
-    stop("YBFMP cannot be synthesized with this function due to taxonomic and life stage issues with that dataset. Please acccess the YBFMP data with the zoop_downloader function or the built-in datasets zoopComb and zoopEnvComb.")
-  }
+  # if("YBFMP" %in% Sources){
+  #   stop("YBFMP cannot be synthesized with this function due to taxonomic and life stage issues with that dataset. Please acccess the YBFMP data with the zoop_downloader function or the built-in datasets zoopComb and zoopEnvComb.")
+  # }
 
-  if (!purrr::every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI"))){
-    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, STN, 20mm, DOP, USGS, LI")
+  if (!purrr::every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "STN", "20mm", "DOP", "USGS", "LI", "YBFMP"))){
+    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, STN, 20mm, DOP, USGS, LI, YBFMP")
   }
 
   if (!purrr::every(Size_class, ~.%in%c("Micro", "Meso", "Macro"))){
@@ -447,7 +447,7 @@ Zoopsynther<-function(
         unique()
 
       StartDates<-StartDates%>%
-        dplyr::filter(.data$Source!="YBFMP")%>%
+        #dplyr::filter(.data$Source!="YBFMP")%>%
         dplyr::mutate(Source=dplyr::recode(.data$Source, "20mm"= "twentymm"))
 
       BadYears<-purrr::map2_dfr(datasets$Source, datasets$SizeClass, ~ Uncountedyears(Source = .x,

@@ -58,7 +58,7 @@ Zoopdownloader <- function(
   if (!purrr::every(Data_sets, ~.%in%c("EMP_Meso", "FMWT_Meso", "STN_Meso",
                                        "20mm_Meso", "FRP_Meso","EMP_Micro",
                                        "FRP_Macro", "EMP_Macro", "FMWT_Macro",
-                                       "STN_Macro", "YBFMP_Meso", "YBFMP_Micro",
+                                       "STN_Macro", "YBFMP_Meso", "YBFMP_Micro","YBFMP_Macro",
                                        "DOP_Meso", "DOP_Macro", "USGS_Meso", "LI_Micro"))){
     stop("Data_sets must contain one or more of the following options: 'EMP_Meso',
          'FMWT_Meso', 'STN_Meso', '20mm_Meso', 'FRP_Meso', 'EMP_Micro', 'FRP_Macro', 'EMP_Macro',
@@ -345,7 +345,7 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
       dplyr::mutate(TowType="Oblique")
 
     #bind the two datasets together and select variables o finterst
-    data.list[["USGS"]] <- bind_rows(USGSx, USGSy) %>%
+    data.list[["USGS"]] <- dplyr::bind_rows(USGSx, USGSy) %>%
       dplyr::left_join(Crosswalk %>% #Add in Taxnames, Lifestage, and taxonomic info
                          dplyr::select("USGS_Meso", "Lifestage", "Taxname", "Phylum",
                                        "Class", "Order", "Family", "Genus", "Species")%>% #only retain dop codes
@@ -901,16 +901,75 @@ zoo_USGSflux<-readr::read_csv("data-raw/USGSwetlands/FLUX_Sample_Table_updateDec
                                  -"SampleID"),
                           names_to="YBFMP", values_to="CPUE")%>%
       dplyr::left_join(Crosswalk %>%
-                         dplyr::select("YBFMP", "Lifestage", "Taxname", "Phylum", "Class",
+                         dplyr::select("YBFMP_Meso", "Lifestage", "Taxname", "Phylum", "Class",
                                        "Order", "Family", "Genus", "Species"),
-                       by = "YBFMP") %>%
+                       by = c("YBFMP" = "YBFMP_Meso")) %>%
       dplyr::mutate(Taxlifestage=paste(.data$Taxname, .data$Lifestage))%>% #create variable for combo taxonomy x life stage
       dplyr::select(-"YBFMP") %>% #Remove YBFMP taxa codes
       dplyr::mutate(SampleID=paste0(.data$Source, "_", .data$SampleID), #Create identifier for each sample
                     TowType="Surface")  %>%
       dplyr::left_join(stations, by=c("Source", "Station")) #Add lat and long
-    cat("\nFRP_Meso finished!\n\n")
+    cat("\nYBFMP_Meso finished!\n\n")
   }
+
+  if("YBFMP_Macro"%in%Data_sets ) {
+
+    #download the file
+    if (!file.exists(file.path(Data_folder, "YBFMPdrift.csv")) | Redownload_data) {
+      Tryer(n=3, fun=utils::download.file, url=URLs$YBFMPdrift,
+            destfile=file.path(Data_folder, "YBFMPdrift.csv"), mode="wb", method=Download_method)
+    }
+
+    zoo_YBFMPdrift<-readr::read_csv(file.path(Data_folder, "YBFMPdrift.csv"),
+                               col_types = readr::cols_only(event_id="c", Datetime="c",  Station="c",
+                                                            Tide="c", WaterTemperature="d", Secchi="d",
+                                                            SpCnd="d", pH="d", DO="d", Turbidity="d",
+                                                            MicrocystisVisualRank="c",  VolumeAdj="d",
+                                                            TaxonName="c", LifeStage = "c", CPUE="d"))%>%
+      dplyr::mutate(Index = 1:nrow(.))
+
+    # Add zeroes, add sample ID, modify column names and order, join crosswalk taxonomy.
+    data.list[["YBFMP_Macro"]] <- zoo_YBFMPdrift %>%
+       dplyr::mutate(LifeStage = dplyr::case_when(is.na(LifeStage) ~ "NotDetermined",
+                                           TRUE ~ LifeStage),
+         YBFMP_Macro=paste(.data$TaxonName, .data$LifeStage),
+                    SizeClass = "Macro",
+                    Source = "YBFMP",
+
+                    Datetime = lubridate::parse_date_time(Datetime, "%Y-%m-%d %H:%M:%S", tz="America/Los_Angeles"),
+                    Date = lubridate::date(Datetime),
+         SampleID = paste0(.data$Date, "_", .data$Station, "_", .data$event_id)) %>%
+      dplyr:: select("Source",
+                     Volume = "VolumeAdj",
+                     "Date",
+                     "Datetime",
+                     "Station",
+                     Temperature = "WaterTemperature",
+                     "Secchi", TurbidityNTU = "Turbidity",
+                     CondSurf = "SpCnd",
+                     "pH", "DO",
+                     Microcystis="MicrocystisVisualRank",
+                     "SampleID",
+                     "YBFMP_Macro",
+                     "CPUE")%>%
+      tidyr::pivot_wider(names_from="YBFMP_Macro", values_from="CPUE", values_fill=0, values_fn = sum) %>%
+      tidyr::pivot_longer(cols=c(-"Source",  -"Volume", -"Date",
+                                 -"Datetime", -"Station", -"Temperature", -"CondSurf", -"Secchi",
+                                 -"pH", -"DO", -"TurbidityNTU", -"Microcystis",
+                                 -"SampleID"),
+                          names_to="YBFMP_Macro", values_to="CPUE")%>%
+      dplyr::left_join(Crosswalk %>%
+                         dplyr::select("YBFMP_Macro", "Lifestage", "Taxname", "Phylum", "Class",
+                                       "Order", "Family", "Genus", "Species"),
+                       by = c("YBFMP_Macro" = "YBFMP_Macro")) %>%
+      dplyr::mutate(Taxlifestage=paste(.data$Taxname, .data$Lifestage))%>% #create variable for combo taxonomy x life stage
+      dplyr::select(-"YBFMP_Macro") %>% #Remove YBFMP taxa codes
+      dplyr::mutate(SampleID=paste0(.data$Source, "_", .data$SampleID), #Create identifier for each sample
+                    TowType="Neuston", SizeClass = "Macro")  %>%
+      dplyr::left_join(stations, by=c("Source", "Station")) #Add lat and long
+    cat("\nYBFMP_Macro finished!\n\n")
+  }
+
 
   # EMP Micro ---------------------------------------------------------------
 
